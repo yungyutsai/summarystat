@@ -1,0 +1,7 @@
+v 1.2
+d STATA Package: SUMMARYSTAT
+d 
+d Authors: Yung-Yu Tsai, University of Missouri, Columbia, MO. ytsai@mail.missouri.edu
+d
+f summarystat.ado
+f summarystat.sthlp
