@@ -1,5 +1,6 @@
-*! version 1.3 Yung-Yu Tsai (ytsai@mail.missouri.edu)
+*! version 1.4 Yung-Yu Tsai (ytsai@mail.missouri.edu)
 
+* v1.4 Allow for variable list
 * v1.3 
 *------ Allow for fast option (use gcollapse() function)
 *------ Allow multiple and interaction by() option
@@ -51,7 +52,7 @@ program define summarystat
 	
 	*** Check for svy prefix
 	loc svy = 0
-	if strpos("`anything'","svy")!=0{
+	if strpos("`anything'","svy:")!=0{
 		loc svy = 1
 		loc prefix = "svy: "
 	}
@@ -213,20 +214,27 @@ program define summarystat
 		}
 	}
 	** Variables
-	loc varslist = subinstr("`anything'","(","",.)
-	loc varslist = subinstr("`varslist'",")","",.)
-	tokenize "`varslist'" //Break down variables in to tokens
-	loc numvars = wordcount("`varslist'")
-	forv i = 1(1)`numvars'{
-		loc var`i' = "``i''"
-		loc var = subinstr("`var`i''","i.","",.)
-		cap confirm variable `var'
-		if _rc != 0{
-			di as error "variable {bf:`var'} not found"
-			error 111
-			exit
+	loc vars = subinstr("`anything'","(","",.)
+	loc vars = subinstr("`vars'",")","",.)
+	tokenize "`vars'" //Break down variables in to tokens
+	loc numvars = wordcount("`vars'")
+	loc i = 1
+	forv j = 1(1)`numvars'{
+		if (strpos("``j''","-")!=0|strpos("``j''","*")!=0|strpos("``j''","?")!=0|strpos("``j''","~")!=0){
+			foreach x of varlist ``j''{
+				loc var`i' = "`x'"
+				confirm variable `x'
+				loc i = `i' + 1
+			}
+		}
+		else{
+			loc var`i' = "``j''"
+			loc var = subinstr("`var`i''","i.","",.)
+			confirm variable `var'
+			loc i = `i' + 1
 		}
 	}
+	loc numvars = `i' - 1
 	if "`by'"!=""{
 		if strpos("`by'","#")!=0{
 			loc byinteract = 1
@@ -242,29 +250,29 @@ program define summarystat
 				loc by1 = substr("`by'",1,strpos("`by'","#")-1)
 				loc by2 = substr("`by'",strpos("`by'","#")+1,.)
 				forv i = 1(1)2{
-					cap confirm variable `by`i''
-					if _rc != 0{
-						di as error "variable {bf:`by`i''} not found"
-						di as error "(error in option {bf:by()})"
-						error 111
-						exit
-					}
+					confirm variable `by`i''
 				}
 			}
 		}
 		if strpos("`by'","#")==0{
 			tokenize "`by'" 
 			loc numbys = wordcount("`by'")
-			forv i = 1(1)`numbys'{
-				loc by`i' = "``i''"
-				cap confirm variable `by`i''
-				if _rc != 0{
-					di as error "variable {bf:`by`i''} not found"
-					di as error "(error in option {bf:by()})"
-					error 111
-					exit
+			loc i = 1
+			forv j = 1(1)`numbys'{
+				if (strpos("``j''","-")!=0|strpos("``j''","*")!=0|strpos("``j''","?")!=0|strpos("``j''","~")!=0){
+					foreach x of varlist ``j''{
+						loc by`i' = "`x'"
+						confirm variable `x'
+						loc i = `i' + 1
+					}
+				}
+				else{
+					loc by`i' = "``j''"
+					confirm variable `by`i''
+					loc i = `i' + 1
 				}
 			}
+			loc numbys = `i' - 1
 		}
 	}
 	* Delete duplicated variables
@@ -307,7 +315,7 @@ program define summarystat
 					loc lab = subinstr("`lab'"," ","",.)
 				}
 				if (`labelvar'== 1) lab var _`var`i''_`j' "`varlab'`lab'"
-				if (`labelvar'== 0) lab var _`var`i''_`j' "`var`i'': `lab'"
+				if (`labelvar'== 0 | "`varlab'"=="") lab var _`var`i''_`j' "`var`i'': `lab'"
 			}
 			loc dummylist = ""
 			forv j = 1(1)`numcats'{ //use new generated dummies to replace original variable
@@ -761,6 +769,8 @@ program define summarystat
 				}
 			}
 		}
+		if (`labelvar'== 1) local labby`i': variable label `by`i''
+		if (`labelvar'== 0|"`labby`i''"=="") local labby`i' = "`by`i''"
 		levelsof `by`i'', local(by`i'levels)
 		tab `by`i'', gen(_by`i'_) //create dummies for factor variable
 		loc numcats`i' = r(r) //number of categories
@@ -772,6 +782,8 @@ program define summarystat
 				loc by`i'lab`j': dis %15.3g `by`i'lab`j'' 
 				loc by`i'lab`j' = subinstr("`by`i'lab`j''"," ","",.)
 			}
+			
+			if (`numbys' > 1 & "`byinteract'"!="1") local by`i'lab`j' = "`labby`i'': `by`i'lab`j''"
 		}
 	}
 	** multiple or interaction bys
@@ -1325,9 +1337,8 @@ program define summarystat
 			}
 		}
 	}
-	
 	** Add one line for group name (for by command)
-	if "`by'"!=""{
+	if "`by'"!="" & "`numbys'"=="1"{
 		local N = _N + 1
 		set obs `N'
 		gen row = _n
@@ -1339,6 +1350,52 @@ program define summarystat
 		foreach l of local bylevels{
 			if `long'==1{
 				replace val`l' = "`bylab`i''" in 1
+				loc i = `i' + 1
+ 			}
+			if `long'==0{
+				replace val1`l' = "`bylab`i''" in 1
+				loc i = `i' + 1
+			}
+		}
+		
+	}
+	if "`by'"!="" & "`numbys'"!="1" & "`byinteract'"!="1"{
+		local N = _N + 2
+		set obs `N'
+		gen row = _n
+		replace row = 0 if row >= `N' - 1
+		sort row
+		drop row
+		
+		loc i = 1
+		foreach l of local bylevels{
+			if `long'==1{
+				replace val`l' = substr("`bylab`i''",1,strpos("`bylab`i''",":")-1) in 1
+				replace val`l' = substr("`bylab`i''",strpos("`bylab`i''",":")+1,.) in 2
+				loc i = `i' + 1
+ 			}
+			if `long'==0{
+				replace val1`l' = substr("`bylab`i''",1,strpos("`bylab`i''",":")-1) in 1
+				replace val1`l' = substr("`bylab`i''",strpos("`bylab`i''",":")+1,.) in 2
+				loc i = `i' + 1
+			}
+			loc k = `l'
+		}
+		
+	}
+	if "`by'"!="" & "`byinteract'"=="1"{
+		local N = _N + 2
+		set obs `N'
+		gen row = _n
+		replace row = 0 if row >= `N' - 1
+		sort row
+		drop row
+		
+		loc i = 1
+		foreach l of local bylevels{
+			if `long'==1{
+				replace val`l' = substr("`bylab`i''",1,strpos("`bylab`i''",",")-1) in 1
+				replace val`l' = substr("`bylab`i''",strpos("`bylab`i''",",")+1,.) in 2
 				loc i = `i' + 1
  			}
 			if `long'==0{
@@ -1399,6 +1456,13 @@ program define summarystat
 		rename `var' v`i'
 		lab var v`i' ""
 		loc i = `i'+1
+	}
+	loc i = `i' - 1
+	forv j = 3(1)`i'{
+		loc k = `j' - 1
+		forv l = 2(1)`k'{
+			replace v`j' = "" if v`j' == v`l' & _n == 1
+		}
 	}
 	
 	*** Additional information

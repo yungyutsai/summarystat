@@ -35,6 +35,7 @@
 
 {p 4 8}Specifies the variables for which summary statistics are calculated for.{p_end}
 {p 8 8}Allows for {help fvvarlist:factor variables} (must specified as {bf:i.}{it:varname}) and string variables. String variables are treated as factor variables.{p_end}
+{p 8 8}Allows for {help varlist:variables list}, including the *, ~, ?, and - characters. See {help varlist} for more information.{p_end}
 {p 8 8}Allows for panel grouping specified with parentheses. {it:e.g.} ({it:var1 var2 var3}) ({it:var4 var5 var6}). Use {help summarystat##panel:panel()} option to specifies panel title.{p_end}
 
 {marker weight}{...}
@@ -208,8 +209,8 @@
 {p 4 8} /* default as wide when by() is not specified */ {p_end}
 {p 4 8} {stata summarystat price mpg i.rep78 headroom trunk weight length turn i.foreign, stat(mean sd min max n) obs(title note) title(Table 1. Summary Statistics) save(auto_summary.xlsx) sheet(format 1) sheetreplace} {p_end}
 
-{p 4 8} /* forced to use long format; when stats() not specified, mean and se are assumed */{p_end}
-{p 4 8} {stata summarystat price mpg i.rep78 headroom trunk weight length turn i.foreign, obs(top) title(Table 1. Summary Statistics) save(auto_summary.xlsx) sheet(format 2) sheetreplace long} {p_end}
+{p 4 8} /* use "-" to indicate a series of sequence variables. forced to use long format; when stats() not specified, mean and se are assumed */{p_end}
+{p 4 8} {stata summarystat price mpg i.rep78 headroom-turn i.foreign, obs(top) title(Table 1. Summary Statistics) save(auto_summary.xlsx) sheet(format 2) sheetreplace long} {p_end}
 
 {p 4 8} /* use panel option for factor variables; adjust format */{p_end}
 {p 4 8} {stata summarystat price mpg (i.rep78) headroom trunk weight length turn (i.foreign), stat(mean sd min max n) title(Table 1. Summary Statistics) save(auto_summary.xlsx) sheet(format 3) sheetrep pan("Repair Record 1978" "Car type") dec(2)} {p_end}
