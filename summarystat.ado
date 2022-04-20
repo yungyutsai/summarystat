@@ -315,7 +315,7 @@ program define summarystat
 					loc lab = subinstr("`lab'"," ","",.)
 				}
 				if (`labelvar'== 1) lab var _`var`i''_`j' "`varlab'`lab'"
-				if (`labelvar'== 0 | "`varlab'"=="") lab var _`var`i''_`j' "`var`i'': `lab'"
+				if (`labelvar'== 0 | "`lab'"=="") lab var _`var`i''_`j' "`var`i'': `lab'"
 			}
 			loc dummylist = ""
 			forv j = 1(1)`numcats'{ //use new generated dummies to replace original variable
