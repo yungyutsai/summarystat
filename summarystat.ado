@@ -1,5 +1,6 @@
-*! version 1.4 Yung-Yu Tsai (ytsai@mail.missouri.edu)
+*! version 1.5 Yung-Yu Tsai (ytsai@mail.missouri.edu)
 
+* v1.5 Fix the if and in function
 * v1.4 Allow for variable list
 * v1.3 
 *------ Allow for fast option (use gcollapse() function)
@@ -12,11 +13,14 @@
 capture program drop summarystat
 program define summarystat
 
-	syntax anything(everything) [if] [in] [aweight fweight pweight iweight] ///
+	syntax anything [if] [in] [aweight fweight pweight iweight] ///
 	[, by(string) all cw lw STats(string) obs(string) long wide Format(string) dec(integer -1) LABel(string) NOLabel PARen(string) NOPAren BRacket(string) NOBRacket TItle(string) PANel(string asis) note(string asis) NONote save(string) sheet(string asis) replace SHEETREPlace sep(string) SEEout NOREStore GCollapse]
 	quiet {
 	set more off
+
 	if ("`norestore'"=="") preserve
+	marksample touse
+	keep if `touse'
 	
 	*** Set default values
 	if ("`wide'"==""&"`by'"!="") loc long = 1 //default as long, when by is specified
@@ -835,8 +839,6 @@ program define summarystat
 		loc by = "_by"
 	}
 	
-	marksample touse
-
 	*** Create convenient local
 	if ("`weight'"!="") loc wt [`weight'`exp']
 	if (`svy'==1){
