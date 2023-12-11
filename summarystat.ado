@@ -1,5 +1,6 @@
 *! version 1.5 Yung-Yu Tsai (ytsai@mail.missouri.edu)
 
+* v1.6 Fix the issue of panel without space
 * v1.5 Fix the if and in function
 * v1.4 Allow for variable list
 * v1.3 
@@ -84,6 +85,18 @@ program define summarystat
 		di as error "{bf:svy:} not allowed with {bf:sepoisson}"
 		error 135
 		exit
+	}
+	
+	*** Check for if and in
+	if strpos("`anything'"," if ")!=0{
+		loc if = substr("`anything'",strpos("`anything'"," if ",.))
+		loc anything = substr("`anything'",1,strpos("`anything'"," if ",.)-1)
+		keep `if'
+	}
+	if strpos("`anything'"," in ")!=0{
+		loc if = substr("`anything'",strpos("`anything'"," in ",.))
+		loc anything = substr("`anything'",1,strpos("`anything'"," in ",.)-1)
+		keep `if'
 	}
 	
 	*** Checke for error
@@ -218,8 +231,8 @@ program define summarystat
 		}
 	}
 	** Variables
-	loc vars = subinstr("`anything'","(","",.)
-	loc vars = subinstr("`vars'",")","",.)
+	loc vars = subinstr("`anything'","("," ",.)
+	loc vars = subinstr("`vars'",")"," ",.)
 	tokenize "`vars'" //Break down variables in to tokens
 	loc numvars = wordcount("`vars'")
 	loc i = 1
@@ -347,6 +360,7 @@ program define summarystat
 		if (substr("`var`i''",1,1)=="_") loc varlab`i': variable label `var`i'' //foreced using label for factor variables
 	}
 	** Panel
+	loc anything = subinstr("`anything'",")(",") (",.)
 	loc noleftpar = subinstr("`anything'","(","",.)
 	loc norightpar = subinstr("`anything'",")","",.)
 	loc numleftpars = length("`anything'") - length("`noleftpar'")
